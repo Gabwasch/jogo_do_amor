@@ -224,7 +224,7 @@ scene("prologo", () => {
 
     // O Mocinho agora é o Gabriel em pixel art (antes era um bloco verde)
     const mocinho = add([ sprite("gabriel"), pos(395, 70), scale(0.42), rotate(0), anchor("center"), area({ scale: 0.7 }), body({ isStatic: true }), "objetivo" ]);
-    darVida(mocinho, 0.05, 3, 2); // ele fica respirando, apavorado, esperando resgate
+    darVida(mocinho, 0.1, 3.5, 3); // ele fica respirando/tremendo, apavorado, esperando resgate
 
     ativarControles(heroina);
 
@@ -456,9 +456,9 @@ scene("vitoria", () => {
     const gabriel = add([ sprite("gabriel"), pos(width() / 2 + 80, height() / 2 + 20), anchor("center"), scale(1), rotate(0) ]);
     gabriel.flipX = true; // virado para a esquerda (para a Ellen)
 
-    // Respiro suave nos dois (vivos, felizes)
-    darVida(ellen, 0.04, 3, 1.5);
-    darVida(gabriel, 0.04, 3, 1.5);
+    // Respiro nos dois (vivos, felizes) — o Gabriel respira um pouco mais (não tem anim de frames)
+    darVida(ellen, 0.05, 3, 2);
+    darVida(gabriel, 0.08, 3.2, 2.5);
 
     // Coração batendo entre eles, lá no alto
     const coracao = add([ sprite("heart"), pos(width() / 2, height() / 2 - 70), anchor("center"), scale(1) ]);
