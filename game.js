@@ -39,6 +39,9 @@ loadSprite("moeda", `${ASSETS_URL}moeda.png`, {
         }
     }
 });
+// Gabriel (o namorado) e o coração do final — pixel art 96x96 / 64x64
+loadSprite("gabriel", `${ASSETS_URL}gabriel.png`);
+loadSprite("heart", `${ASSETS_URL}heart.png`);
 
 const VELOCIDADE_MOVIMENTO = 320;
 const FORCA_PULO = 850;
@@ -94,6 +97,20 @@ function criarHeroina(x = 50, y = 400) {
         opacity(1),
         "heroina"
     ]);
+}
+
+// Dá "vida" a um objeto: respiro (squash & stretch) + leve balanço.
+// Precisa dos componentes scale() e rotate() no objeto.
+function darVida(obj, intensidade = 0.08, velocidade = 4, balanco = 3) {
+    const faseAleatoria = rand(0, Math.PI * 2); // cada um respira num tempo diferente
+    const baseX = obj.scale ? obj.scale.x : 1;
+    const baseY = obj.scale ? obj.scale.y : 1;
+    obj.onUpdate(() => {
+        const t = time() * velocidade + faseAleatoria;
+        const s = Math.sin(t);
+        obj.scale = vec2(baseX * (1 + s * intensidade), baseY * (1 - s * intensidade * 0.6));
+        obj.angle = Math.sin(t * 0.5) * balanco; // balancinho sutil
+    });
 }
 
 // Faz um objeto piscar por um tempo (feedback visual de dano)
@@ -205,8 +222,9 @@ scene("prologo", () => {
 
     const heroina = criarHeroina(50, 400);
 
-    // O Mocinho continua sendo o bloco verde por enquanto
-    const mocinho = add([ rect(32, 32), pos(400, 100), color(50, 255, 50), area(), body({ isStatic: true }), "objetivo" ]);
+    // O Mocinho agora é o Gabriel em pixel art (antes era um bloco verde)
+    const mocinho = add([ sprite("gabriel"), pos(395, 70), scale(0.42), rotate(0), anchor("center"), area({ scale: 0.7 }), body({ isStatic: true }), "objetivo" ]);
+    darVida(mocinho, 0.05, 3, 2); // ele fica respirando, apavorado, esperando resgate
 
     ativarControles(heroina);
 
@@ -219,10 +237,14 @@ scene("prologo", () => {
         // O Vírus Chefão aparece GIGANTE para engolir o programador!
         const virus = add([
             sprite("virus", { width: 96, height: 96 }), // Aumentado para 96x96
-            // Ajustamos a posição para ele nascer centralizado em cima do mocinho
-            pos(mocinho.pos.x - 32, mocinho.pos.y - 32),
+            // Nasce centralizado em cima do Gabriel
+            pos(mocinho.pos.x, mocinho.pos.y),
+            anchor("center"),
+            scale(1),
+            rotate(0),
             area()
         ]);
+        darVida(virus, 0.1, 6, 4); // pulsa forte, ameaçador
 
         mocinho.unuse("body");
 
@@ -329,8 +351,8 @@ scene("game", ({ fase, moedas, vidas }) => {
             // Moeda (Bit amarelo) - Tamanho menorzinho
             "$": () => [ sprite("moeda", { width: 16, height: 16, anim: "spin" }), area(), pos(8, 8), "moeda" ],
 
-            // Inimigo (Vírus menor)
-            "^": () => [ sprite("virus", { width: 32, height: 32 }), area({ scale: 0.8 }), body({ isStatic: true }), "inimigo" ],
+            // Inimigo (Vírus menor) — anchor/scale/rotate permitem o "respiro"
+            "^": () => [ sprite("virus", { width: 32, height: 32 }), anchor("center"), pos(16, 16), scale(1), rotate(0), area({ scale: 0.8 }), body({ isStatic: true }), "inimigo" ],
 
             // Portal Cyber - Um pouco mais alto
             "@": () => [ sprite("portal", { width: 32, height: 48 }), area(), body({ isStatic: true }), "portal" ],
@@ -338,6 +360,9 @@ scene("game", ({ fase, moedas, vidas }) => {
     };
 
     addLevel(FASES[fase], configMapa);
+
+    // Dá "vida" a cada vírus: eles ficam respirando/pulsando, como se estivessem vivos
+    get("inimigo", { recursive: true }).forEach((v) => darVida(v, 0.12, 5, 5));
 
     const heroina = criarHeroina(50, 400);
 
@@ -421,9 +446,29 @@ scene("gameover", () => {
 });
 
 scene("vitoria", () => {
-    add([ text("ACESSO ROOT CONCEDIDO!", { size: 40 }), pos(width() / 2, height() / 2 - 50), anchor("center"), color(0, 255, 0) ]);
-    add([ text("Você hackeou o coração dele! <3", { size: 24 }), pos(width() / 2, height() / 2 + 30), anchor("center"), color(255, 255, 255) ]);
-    add([ text("Aperte [ESPAÇO] para jogar de novo", { size: 18 }), pos(width() / 2, height() / 2 + 90), anchor("center"), color(0, 200, 0) ]);
+    add([ text("ACESSO ROOT CONCEDIDO!", { size: 40 }), pos(width() / 2, 90), anchor("center"), color(0, 255, 0) ]);
+
+    // Os dois reunidos, um de frente para o outro
+    const ellen = add([ sprite("heroina"), pos(width() / 2 - 80, height() / 2 + 20), anchor("center"), scale(1), rotate(0), opacity(1) ]);
+    ellen.flipX = false; // virada para a direita (para o Gabriel)
+    ellen.play("idle");
+
+    const gabriel = add([ sprite("gabriel"), pos(width() / 2 + 80, height() / 2 + 20), anchor("center"), scale(1), rotate(0) ]);
+    gabriel.flipX = true; // virado para a esquerda (para a Ellen)
+
+    // Respiro suave nos dois (vivos, felizes)
+    darVida(ellen, 0.04, 3, 1.5);
+    darVida(gabriel, 0.04, 3, 1.5);
+
+    // Coração batendo entre eles, lá no alto
+    const coracao = add([ sprite("heart"), pos(width() / 2, height() / 2 - 70), anchor("center"), scale(1) ]);
+    coracao.onUpdate(() => {
+        const s = 1 + Math.sin(time() * 5) * 0.18; // pulsar de batida
+        coracao.scale = vec2(s, s);
+    });
+
+    add([ text("Você hackeou o coração dele! <3", { size: 24 }), pos(width() / 2, height() - 110), anchor("center"), color(255, 255, 255) ]);
+    add([ text("Aperte [ESPAÇO] para jogar de novo", { size: 18 }), pos(width() / 2, height() - 70), anchor("center"), color(0, 200, 0) ]);
     onKeyPress("space", () => go("intro"));
 });
 
