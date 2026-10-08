@@ -39,8 +39,11 @@ loadSprite("moeda", `${ASSETS_URL}moeda.png`, {
         }
     }
 });
-// Gabriel (o namorado) e o coração do final — pixel art 96x96 / 64x64
-loadSprite("gabriel", `${ASSETS_URL}gabriel.png`);
+// Gabriel (o namorado): 2 frames de "respiro" (idle), igual a Ellen
+loadSprite("gabriel", `${ASSETS_URL}gabriel.png`, {
+    sliceX: 2,
+    anims: { "idle": { from: 0, to: 1, speed: 2, loop: true } }
+});
 loadSprite("heart", `${ASSETS_URL}heart.png`);
 
 const VELOCIDADE_MOVIMENTO = 320;
@@ -222,9 +225,30 @@ scene("prologo", () => {
 
     const heroina = criarHeroina(50, 400);
 
-    // O Mocinho agora é o Gabriel em pixel art (antes era um bloco verde)
-    const mocinho = add([ sprite("gabriel"), pos(395, 70), scale(0.42), rotate(0), anchor("center"), area({ scale: 0.7 }), body({ isStatic: true }), "objetivo" ]);
-    darVida(mocinho, 0.1, 3.5, 3); // ele fica respirando/tremendo, apavorado, esperando resgate
+    // O Mocinho é o Gabriel em pixel art, de pé na plataforma (linha 5, topo em y=160).
+    // Respira por troca de frame (idle), igual a Ellen — nada de escala/rotação.
+    const GAB_X = 448, PLAT_TOPO = 160, GAB_ESCALA = 0.46;
+    const mocinho = add([
+        sprite("gabriel"),
+        pos(GAB_X, PLAT_TOPO - 96 * GAB_ESCALA / 2), // centro, pés tocando a plataforma
+        scale(GAB_ESCALA),
+        anchor("center"),
+        area({ scale: 0.7 }),
+        body({ isStatic: true }),
+        "objetivo"
+    ]);
+    mocinho.play("idle");
+
+    // --- GRADE / PRISÃO ao redor do Gabriel ---
+    const GRADE_COR = [150, 162, 178];
+    const gLarg = 60, gAlt = 60;
+    const gEsq = GAB_X - gLarg / 2, gTopo = PLAT_TOPO - gAlt;
+    for (let x = gEsq; x <= gEsq + gLarg; x += 8) {                 // barras verticais
+        add([ rect(3, gAlt), pos(x, gTopo), color(GRADE_COR[0], GRADE_COR[1], GRADE_COR[2]), opacity(0.8), z(50), "grade" ]);
+    }
+    [gTopo, gTopo + gAlt / 2, PLAT_TOPO - 2].forEach((y) => {       // barras horizontais
+        add([ rect(gLarg + 3, 3), pos(gEsq, y), color(GRADE_COR[0], GRADE_COR[1], GRADE_COR[2]), opacity(0.8), z(50), "grade" ]);
+    });
 
     ativarControles(heroina);
 
@@ -233,6 +257,9 @@ scene("prologo", () => {
     heroina.onCollide("objetivo", () => {
         if (raptado) return;
         raptado = true;
+
+        // A grade se rompe no momento do rapto
+        get("grade").forEach(destroy);
 
         // O Vírus Chefão aparece GIGANTE para engolir o programador!
         const virus = add([
@@ -455,10 +482,7 @@ scene("vitoria", () => {
 
     const gabriel = add([ sprite("gabriel"), pos(width() / 2 + 80, height() / 2 + 20), anchor("center"), scale(1), rotate(0) ]);
     gabriel.flipX = true; // virado para a esquerda (para a Ellen)
-
-    // Respiro nos dois (vivos, felizes) — o Gabriel respira um pouco mais (não tem anim de frames)
-    darVida(ellen, 0.05, 3, 2);
-    darVida(gabriel, 0.08, 3.2, 2.5);
+    gabriel.play("idle"); // respira por troca de frame, igual a Ellen
 
     // Coração batendo entre eles, lá no alto
     const coracao = add([ sprite("heart"), pos(width() / 2, height() / 2 - 70), anchor("center"), scale(1) ]);
